@@ -24,7 +24,8 @@ jobs:
 
       - name: Install Buildozer and Cython
         run: |
-          pip install --upgrade buildozer cython
+          pip install --upgrade cython
+          pip install https://github.com/kivy/buildozer/archive/master.zip
 
       - name: Clean Buildozer cache
         run: |
