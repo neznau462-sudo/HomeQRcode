@@ -6,7 +6,7 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,key,txt
 source.include_patterns = keys/*.key
 version = 0.1
-requirements = python3,kivy==2.3.0,pillow,qrcode,pycryptodome,opencv,pyjnius,android,androidstorage4kivy
+requirements = python3==3.12.1, hostpython3==3.12.1, kivy==2.3.0
 orientation = portrait
 fullscreen = 0
 android.permissions = CAMERA,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
