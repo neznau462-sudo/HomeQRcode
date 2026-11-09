@@ -16,4 +16,5 @@ android.minapi = 26
 android.archs = arm64-v8a,armeabi-v7a
 android.accept_sdk_license = True
 android.allow_backup = True
+android.p4a_whitelist = /usr/local/lib/python3.12/encodings/
 p4a.branch = develop
