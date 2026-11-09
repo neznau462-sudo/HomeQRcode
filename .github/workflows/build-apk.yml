@@ -25,7 +25,8 @@ jobs:
 
       - name: Check Python syntax
         run: |
-          python -m compileall -q main.py database.py storage_utils.py crypto_utils.py screens
+          python -m compileall -q main.py database.py storage_utils.py \
+            crypto_utils.py ui_theme.py backup_utils.py screens
           echo "syntax OK"
 
       - name: Install system dependencies
@@ -40,9 +41,28 @@ jobs:
         run: |
           pip install buildozer==1.6.0
 
+      - name: Restore debug keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p ~/.android
+            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            keytool -list -keystore ~/.android/debug.keystore \
+              -storepass android -alias androiddebugkey > /dev/null
+            echo "Debug keystore restored (stable signature)"
+          else
+            echo "::warning::DEBUG_KEYSTORE_B64 is not set - the APK signature will change on every build and updates will require uninstall"
+          fi
+
       - name: Build with Buildozer
         run: |
           buildozer android debug
+
+      - name: Show APK signer
+        run: |
+          APK=$(ls bin/*.apk | head -n 1)
+          keytool -printcert -jarfile "$APK" | grep -E "Owner|SHA256" || true
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
