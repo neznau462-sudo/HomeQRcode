@@ -1,8 +1,5 @@
-import io
-
 import qrcode
 from kivy.app import App
-from kivy.core.image import Image as CoreImage
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
