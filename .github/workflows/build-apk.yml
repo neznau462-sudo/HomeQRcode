@@ -26,16 +26,14 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip \
+            autoconf automake libtool libltdl-dev pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 cmake ninja-build \
+            libffi-dev libssl-dev
 
-      - name: Install Buildozer and Cython
+      - name: Install Buildozer
         run: |
-          pip install --upgrade cython
-          pip install https://github.com/kivy/buildozer/archive/master.zip
-
-      - name: Clean Buildozer cache
-        run: |
-          rm -rf ~/.buildozer
+          pip install buildozer==1.6.0
 
       - name: Build with Buildozer
         run: |
