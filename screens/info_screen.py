@@ -6,6 +6,21 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
 
+def _fit_label(label, min_height):
+    """Подгоняет высоту Label под перенесённый текст (иначе он обрезается)."""
+
+    def on_width(*_):
+        label.text_size = (label.width, None)
+
+    def on_texture(*_):
+        label.height = max(min_height, label.texture_size[1] + dp(8))
+
+    label.bind(width=on_width, texture_size=on_texture)
+    on_width()
+    on_texture()
+    return label
+
+
 class InfoScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -14,13 +29,16 @@ class InfoScreen(Screen):
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
 
-        self.lbl_header = Label(
-            text="Здесь появятся данные отсканированного объекта",
-            size_hint_y=None,
-            height=dp(44),
-            font_size="15sp",
+        self.lbl_header = _fit_label(
+            Label(
+                text="Здесь появятся данные отсканированного объекта",
+                size_hint_y=None,
+                font_size="15sp",
+                halign="left",
+                valign="top",
+            ),
+            dp(44),
         )
-        self.lbl_header.bind(width=lambda inst, w: setattr(inst, "text_size", (w, None)))
         root.add_widget(self.lbl_header)
 
         scroll = ScrollView()
@@ -44,13 +62,12 @@ class InfoScreen(Screen):
         ]:
             value = obj.get(key) or "—"
             lbl = Label(
-                text="[b]" + label + ":[/b] " + str(value),
+                text="[b]" + label + "[/b] " + str(value),
                 markup=True,
                 size_hint_y=None,
-                height=dp(64),
                 font_size="14sp",
                 halign="left",
                 valign="top",
             )
-            lbl.bind(width=lambda inst, w: setattr(inst, "text_size", (w, None)))
+            _fit_label(lbl, dp(40))
             self.content.add_widget(lbl)
