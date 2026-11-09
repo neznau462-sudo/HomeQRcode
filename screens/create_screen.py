@@ -142,17 +142,22 @@ class CreateScreen(Screen):
         obj_id = app.db.new_id()
         encrypted = encrypt_id(obj_id)
 
-        qr = qrcode.QRCode(
-            version=None,
-            error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=10,
-            border=2,
-        )
-        qr.add_data(encrypted)
-        qr.make(fit=True)
-        pil_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        try:
+            qr = qrcode.QRCode(
+                version=None,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=10,
+                border=2,
+            )
+            qr.add_data(encrypted)
+            qr.make(fit=True)
+            # convert() есть у qrcode через __getattr__ -> PIL.Image
+            pil_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+            local_path = save_qr_png(pil_img, app.qr_dir)
+        except Exception as exc:
+            self.lbl_status.text = "Ошибка: " + str(exc)
+            return
 
-        local_path = save_qr_png(pil_img, app.qr_dir)
         self._last_qr_path = local_path
 
         app.db.insert(
@@ -164,16 +169,20 @@ class CreateScreen(Screen):
             qr_path=local_path,
         )
 
-        buf = io.BytesIO()
-        pil_img.save(buf, format="PNG")
-        buf.seek(0)
-        self.img_preview.texture = CoreImage(buf, ext="png").texture
+        # Источник картинки — файл: не зависит от времени жизни BytesIO.
+        if self.img_preview.source == local_path:
+            self.img_preview.reload()
+        else:
+            self.img_preview.source = local_path
 
         self.lbl_status.text = "Готово. ID: " + obj_id[:8]
         self.btn_save.disabled = False
 
     def _on_save_to_gallery(self, *_):
-        if self._last_qr_path:
-            copy_to_gallery(self._last_qr_path)
+        if not self._last_qr_path:
+            return
+        if copy_to_gallery(self._last_qr_path):
             self.lbl_status.text = "Сохранено в галерею"
-        self.btn_save.disabled = True
+            self.btn_save.disabled = True
+        else:
+            self.lbl_status.text = "Не удалось сохранить в галерею"
