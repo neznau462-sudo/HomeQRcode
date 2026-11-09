@@ -113,6 +113,10 @@ class HomeQRApp(App):
         self.root_widget = RootWidget()
         return self.root_widget
 
+    def reload_db(self):
+        """Переоткрыть базу (после восстановления из резервной копии)."""
+        self.db = Database(self.user_data_dir)
+
 
 if __name__ == "__main__":
     HomeQRApp().run()
