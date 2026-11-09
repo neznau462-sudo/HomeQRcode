@@ -99,9 +99,14 @@ class RoundedTextInput(TextInput):
         kwargs.setdefault("font_size", "15sp")
         kwargs.setdefault("padding", [dp(12), dp(12), dp(12), dp(12)])
         super().__init__(**kwargs)
-        with self.canvas.before:
-            self._bg = Color(*self.bg_color)
-            self._rect = RoundedRectangle(radius=[self.radius] * 4)
+        self._bg = Color(*self.bg_color)
+        self._rect = RoundedRectangle(radius=[self.radius] * 4)
+        # ВАЖНО: вставляем в НАЧАЛО canvas.before.
+        # Стандартное правило Kivy для TextInput заканчивается инструкцией
+        # Color, которой красится текст. Если дописать свой Color в конец,
+        # текст начнёт рисоваться цветом фона и станет невидимым.
+        self.canvas.before.insert(0, self._rect)
+        self.canvas.before.insert(0, self._bg)
         self.bind(pos=self._sync, size=self._sync, radius=self._sync_radius)
         self._sync()
 
