@@ -1,17 +1,41 @@
 import io
+
 import qrcode
-from kivy.uix.screenmanager import Screen
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
-from kivy.uix.image import Image
-from kivy.core.image import Image as CoreImage
 from kivy.app import App
+from kivy.core.image import Image as CoreImage
+from kivy.metrics import dp
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.image import Image
+from kivy.uix.label import Label
+from kivy.uix.screenmanager import Screen
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.textinput import TextInput
 
 from crypto_utils import encrypt_id
 from storage_utils import save_qr_png, copy_to_gallery
+
+ROW_HEIGHT = dp(48)
+LABEL_WIDTH = dp(118)
+
+
+class FieldLabel(Label):
+    """Подпись слева от поля ввода: фиксированная ширина, перенос по словам."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("size_hint_x", None)
+        kwargs.setdefault("width", LABEL_WIDTH)
+        kwargs.setdefault("size_hint_y", None)
+        kwargs.setdefault("height", ROW_HEIGHT)
+        kwargs.setdefault("font_size", "14sp")
+        kwargs.setdefault("halign", "right")
+        kwargs.setdefault("valign", "middle")
+        super().__init__(**kwargs)
+        self.bind(size=self._sync_text_size)
+
+    def _sync_text_size(self, *_):
+        self.text_size = (self.width - dp(6), self.height)
 
 
 class CreateScreen(Screen):
@@ -21,15 +45,46 @@ class CreateScreen(Screen):
         self._build_ui()
 
     def _build_ui(self):
-        root = BoxLayout(orientation="vertical", padding=12, spacing=8)
+        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(8))
 
-        form = GridLayout(cols=2, spacing=6, size_hint_y=None)
+        # Всё содержимое в ScrollView: на маленьких экранах и при открытой
+        # клавиатуре форма не «схлопывается», а прокручивается.
+        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
+        content = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10))
+        content.bind(minimum_height=content.setter("height"))
+
+        form = GridLayout(cols=2, spacing=dp(8), size_hint_y=None)
         form.bind(minimum_height=form.setter("height"))
 
-        self.ti_name = TextInput(multiline=False, hint_text="Например: Ботинки зимние")
-        self.ti_category = TextInput(multiline=False, hint_text="Например: Обувь")
-        self.ti_location = TextInput(multiline=False, hint_text="Например: справа на верхней полке")
-        self.ti_description = TextInput(multiline=True, hint_text="Свободное описание")
+        self.ti_name = TextInput(
+            multiline=False,
+            hint_text="Например: Ботинки зимние",
+            size_hint_y=None,
+            height=ROW_HEIGHT,
+            font_size="15sp",
+        )
+        self.ti_category = TextInput(
+            multiline=False,
+            hint_text="Например: Обувь",
+            size_hint_y=None,
+            height=ROW_HEIGHT,
+            font_size="15sp",
+        )
+        self.ti_location = TextInput(
+            multiline=False,
+            hint_text="Например: справа на верхней полке",
+            size_hint_y=None,
+            height=ROW_HEIGHT,
+            font_size="15sp",
+        )
+        self.ti_description = TextInput(
+            multiline=True,
+            hint_text="Свободное описание",
+            size_hint_y=None,
+            height=dp(96),
+            font_size="15sp",
+            padding=[dp(8), dp(10), dp(8), dp(10)],
+        )
 
         for label, widget in [
             ("Название*", self.ti_name),
@@ -37,26 +92,47 @@ class CreateScreen(Screen):
             ("Местоположение", self.ti_location),
             ("Описание", self.ti_description),
         ]:
-            form.add_widget(Label(text=label, size_hint_x=0.35))
+            form.add_widget(FieldLabel(text=label))
             form.add_widget(widget)
 
-        root.add_widget(form)
+        content.add_widget(form)
 
-        btn_generate = Button(text="Сгенерировать QR", size_hint_y=None, height=52)
+        btn_generate = Button(
+            text="Сгенерировать QR",
+            size_hint_y=None,
+            height=dp(52),
+            font_size="16sp",
+        )
         btn_generate.bind(on_release=self._on_generate)
-        root.add_widget(btn_generate)
+        content.add_widget(btn_generate)
 
-        self.img_preview = Image(size_hint=(1, 0.45))
-        root.add_widget(self.img_preview)
+        self.img_preview = Image(
+            size_hint_y=None,
+            height=dp(240),
+            fit_mode="contain",
+        )
+        content.add_widget(self.img_preview)
 
-        self.lbl_status = Label(text="", size_hint_y=None, height=30)
-        root.add_widget(self.lbl_status)
+        self.lbl_status = Label(
+            text="",
+            size_hint_y=None,
+            height=dp(28),
+            font_size="14sp",
+        )
+        content.add_widget(self.lbl_status)
 
-        self.btn_save = Button(text="Сохранить в галерею",
-                               size_hint_y=None, height=48, disabled=True)
+        self.btn_save = Button(
+            text="Сохранить в галерею",
+            size_hint_y=None,
+            height=dp(48),
+            font_size="15sp",
+            disabled=True,
+        )
         self.btn_save.bind(on_release=self._on_save_to_gallery)
-        root.add_widget(self.btn_save)
+        content.add_widget(self.btn_save)
 
+        scroll.add_widget(content)
+        root.add_widget(scroll)
         self.add_widget(root)
 
     def _on_generate(self, *_):
