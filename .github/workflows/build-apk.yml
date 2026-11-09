@@ -23,6 +23,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Check Python syntax
+        run: |
+          python -m compileall -q main.py database.py storage_utils.py crypto_utils.py screens
+          echo "syntax OK"
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
