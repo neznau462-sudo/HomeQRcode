@@ -46,13 +46,24 @@ class HomeQRApp(App):
         self.db = Database(self.user_data_dir)
         try:
             from android.permissions import request_permissions, Permission
-            request_permissions([
-                Permission.CAMERA,
-                Permission.READ_EXTERNAL_STORAGE,
-                Permission.WRITE_EXTERNAL_STORAGE,
-            ])
         except ImportError:
-            pass
+            request_permissions = None
+
+        if request_permissions is not None:
+            # На Android 13+ (API 33) WRITE_EXTERNAL_STORAGE уже не выдаётся,
+            # вместо него нужен READ_MEDIA_IMAGES. Берём только те разрешения,
+            # которые есть в текущей версии p4a, чтобы не упасть на старте.
+            wanted = []
+            for name in (
+                "CAMERA",
+                "READ_MEDIA_IMAGES",
+                "READ_EXTERNAL_STORAGE",
+                "WRITE_EXTERNAL_STORAGE",
+            ):
+                permission = getattr(Permission, name, None)
+                if permission is not None:
+                    wanted.append(permission)
+            request_permissions(wanted)
         self.root_widget = RootWidget()
         return self.root_widget
 
