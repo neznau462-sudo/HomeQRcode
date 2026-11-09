@@ -1,11 +1,12 @@
-from kivy.uix.screenmanager import Screen
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
-from kivy.uix.spinner import Spinner
-from kivy.uix.scrollview import ScrollView
 from kivy.app import App
+from kivy.metrics import dp
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.screenmanager import Screen
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.spinner import Spinner
+from kivy.uix.textinput import TextInput
 
 
 class SearchScreen(Screen):
@@ -14,21 +15,42 @@ class SearchScreen(Screen):
         self._build_ui()
 
     def _build_ui(self):
-        root = BoxLayout(orientation="vertical", padding=12, spacing=8)
-        self.ti_name = TextInput(multiline=False, hint_text="Поиск по названию",
-                                 size_hint_y=None, height=44)
+        root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
+
+        self.ti_name = TextInput(
+            multiline=False,
+            hint_text="Поиск по названию",
+            size_hint_y=None,
+            height=dp(46),
+            font_size="15sp",
+        )
         root.add_widget(self.ti_name)
-        self.spinner = Spinner(text="Все категории", values=["Все категории"],
-                               size_hint_y=None, height=44)
+
+        self.spinner = Spinner(
+            text="Все категории",
+            values=["Все категории"],
+            size_hint_y=None,
+            height=dp(46),
+            font_size="15sp",
+        )
         root.add_widget(self.spinner)
-        btn = Button(text="Найти", size_hint_y=None, height=48)
+
+        btn = Button(text="Найти", size_hint_y=None, height=dp(48), font_size="16sp")
         btn.bind(on_release=lambda *_: self._do_search())
         root.add_widget(btn)
-        self.results = BoxLayout(orientation="vertical", size_hint_y=None, spacing=4)
+
+        self.results = BoxLayout(
+            orientation="vertical",
+            size_hint_y=None,
+            size_hint_x=1,
+            spacing=dp(6),
+        )
         self.results.bind(minimum_height=self.results.setter("height"))
+
         scroll = ScrollView()
         scroll.add_widget(self.results)
         root.add_widget(scroll)
+
         self.add_widget(root)
 
     def on_enter(self):
@@ -46,8 +68,9 @@ class SearchScreen(Screen):
         rows = app.db.search(name_query=name_q, category=cat_q)
         self.results.clear_widgets()
         if not rows:
-            self.results.add_widget(Label(text="Ничего не найдено",
-                                          size_hint_y=None, height=40))
+            self.results.add_widget(
+                Label(text="Ничего не найдено", size_hint_y=None, height=dp(44))
+            )
             return
         for row in rows:
             text = (
@@ -56,6 +79,15 @@ class SearchScreen(Screen):
                 "Местоположение: " + str(row["location"] or "—") + "\n"
                 "Описание: " + str(row["description"] or "—") + "\n"
                 "Создано: " + str(row["created_at"]))
-            lbl = Label(text=text, markup=True, size_hint_y=None, height=140,
-                        text_size=(None, None), halign="left", valign="top")
+            lbl = Label(
+                text=text,
+                markup=True,
+                size_hint_y=None,
+                height=dp(160),
+                font_size="14sp",
+                halign="left",
+                valign="top",
+            )
+            # без этого Label не переносит строки и текст обрезается
+            lbl.bind(width=lambda inst, w: setattr(inst, "text_size", (w, None)))
             self.results.add_widget(lbl)
