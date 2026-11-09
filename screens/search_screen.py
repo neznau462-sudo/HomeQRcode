@@ -14,6 +14,20 @@ class SearchScreen(Screen):
         super().__init__(**kwargs)
         self._build_ui()
 
+    def _fit_label(label, min_height):
+    """Подгоняет высоту Label под перенесённый текст (иначе он обрезается)."""
+
+    def on_width(*_):
+        label.text_size = (label.width, None)
+
+    def on_texture(*_):
+        label.height = max(min_height, label.texture_size[1] + dp(8))
+
+    label.bind(width=on_width, texture_size=on_texture)
+    on_width()
+    on_texture()
+    return label
+
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
 
@@ -83,11 +97,12 @@ class SearchScreen(Screen):
                 text=text,
                 markup=True,
                 size_hint_y=None,
-                height=dp(160),
                 font_size="14sp",
                 halign="left",
                 valign="top",
             )
+            _fit_label(lbl, dp(120))
+            self.results.add_widget(lbl)
             # без этого Label не переносит строки и текст обрезается
             lbl.bind(width=lambda inst, w: setattr(inst, "text_size", (w, None)))
             self.results.add_widget(lbl)
