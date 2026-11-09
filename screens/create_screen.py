@@ -2,19 +2,19 @@ import qrcode
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.textinput import TextInput
 
 from crypto_utils import encrypt_id
 from storage_utils import save_qr_png, copy_to_gallery
+from ui_theme import (SURFACE_HI, TEXT, TEXT_MUTED, Card, RoundedButton,
+                      RoundedTextInput)
 
-ROW_HEIGHT = dp(48)
-LABEL_WIDTH = dp(118)
+ROW = dp(50)
+LABEL_W = dp(120)
 
 
 class FieldLabel(Label):
@@ -22,10 +22,11 @@ class FieldLabel(Label):
 
     def __init__(self, **kwargs):
         kwargs.setdefault("size_hint_x", None)
-        kwargs.setdefault("width", LABEL_WIDTH)
+        kwargs.setdefault("width", LABEL_W)
         kwargs.setdefault("size_hint_y", None)
-        kwargs.setdefault("height", ROW_HEIGHT)
+        kwargs.setdefault("height", ROW)
         kwargs.setdefault("font_size", "14sp")
+        kwargs.setdefault("color", TEXT_MUTED)
         kwargs.setdefault("halign", "right")
         kwargs.setdefault("valign", "middle")
         super().__init__(**kwargs)
@@ -42,45 +43,42 @@ class CreateScreen(Screen):
         self._build_ui()
 
     def _build_ui(self):
-        root = BoxLayout(orientation="vertical", padding=dp(10), spacing=dp(8))
+        root = BoxLayout(orientation="vertical", padding=dp(12))
 
-        # Всё содержимое в ScrollView: на маленьких экранах и при открытой
-        # клавиатуре форма не «схлопывается», а прокручивается.
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
-        content = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10))
+        content = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(12))
         content.bind(minimum_height=content.setter("height"))
 
-        form = GridLayout(cols=2, spacing=dp(8), size_hint_y=None)
+        form = Card(orientation="vertical", size_hint_y=None,
+                    padding=dp(12), spacing=dp(8))
         form.bind(minimum_height=form.setter("height"))
 
-        self.ti_name = TextInput(
+        grid = GridLayout(cols=2, spacing=dp(8), size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+
+        self.ti_name = RoundedTextInput(
             multiline=False,
             hint_text="Например: Ботинки зимние",
             size_hint_y=None,
-            height=ROW_HEIGHT,
-            font_size="15sp",
+            height=ROW,
         )
-        self.ti_category = TextInput(
+        self.ti_category = RoundedTextInput(
             multiline=False,
             hint_text="Например: Обувь",
             size_hint_y=None,
-            height=ROW_HEIGHT,
-            font_size="15sp",
+            height=ROW,
         )
-        self.ti_location = TextInput(
+        self.ti_location = RoundedTextInput(
             multiline=False,
             hint_text="Например: справа на верхней полке",
             size_hint_y=None,
-            height=ROW_HEIGHT,
-            font_size="15sp",
+            height=ROW,
         )
-        self.ti_description = TextInput(
+        self.ti_description = RoundedTextInput(
             multiline=True,
             hint_text="Свободное описание",
             size_hint_y=None,
             height=dp(96),
-            font_size="15sp",
-            padding=[dp(8), dp(10), dp(8), dp(10)],
         )
 
         for label, widget in [
@@ -89,40 +87,34 @@ class CreateScreen(Screen):
             ("Местоположение", self.ti_location),
             ("Описание", self.ti_description),
         ]:
-            form.add_widget(FieldLabel(text=label))
-            form.add_widget(widget)
+            grid.add_widget(FieldLabel(text=label))
+            grid.add_widget(widget)
 
+        form.add_widget(grid)
         content.add_widget(form)
 
-        btn_generate = Button(
-            text="Сгенерировать QR",
-            size_hint_y=None,
-            height=dp(52),
-            font_size="16sp",
-        )
-        btn_generate.bind(on_release=self._on_generate)
-        content.add_widget(btn_generate)
+        self.btn_generate = RoundedButton(text="Сгенерировать QR",
+                                          size_hint_y=None, height=dp(52))
+        self.btn_generate.bind(on_release=self._on_generate)
+        content.add_widget(self.btn_generate)
 
-        self.img_preview = Image(
-            size_hint_y=None,
-            height=dp(240),
-            fit_mode="contain",
-        )
-        content.add_widget(self.img_preview)
+        preview = Card(size_hint_y=None, height=dp(260), padding=dp(8))
+        self.img_preview = Image(size_hint_y=None, height=dp(240),
+                                 fit_mode="contain")
+        preview.add_widget(self.img_preview)
+        content.add_widget(preview)
 
-        self.lbl_status = Label(
-            text="",
-            size_hint_y=None,
-            height=dp(28),
-            font_size="14sp",
-        )
+        self.lbl_status = Label(text="", size_hint_y=None, height=dp(28),
+                                font_size="14sp", color=TEXT_MUTED)
         content.add_widget(self.lbl_status)
 
-        self.btn_save = Button(
+        self.btn_save = RoundedButton(
             text="Сохранить в галерею",
             size_hint_y=None,
             height=dp(48),
-            font_size="15sp",
+            bg_color=list(SURFACE_HI),
+            bg_color_down=list(SURFACE_HI),
+            text_color=list(TEXT),
             disabled=True,
         )
         self.btn_save.bind(on_release=self._on_save_to_gallery)
@@ -169,7 +161,6 @@ class CreateScreen(Screen):
             qr_path=local_path,
         )
 
-        # Источник картинки — файл: не зависит от времени жизни BytesIO.
         if self.img_preview.source == local_path:
             self.img_preview.reload()
         else:
