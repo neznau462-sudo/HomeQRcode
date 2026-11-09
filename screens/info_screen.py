@@ -5,6 +5,8 @@ from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
+from ui_theme import TEXT, Card
+
 
 def _fit_label(label, min_height):
     """Подгоняет высоту Label под перенесённый текст (иначе он обрезается)."""
@@ -33,7 +35,8 @@ class InfoScreen(Screen):
             Label(
                 text="Здесь появятся данные отсканированного объекта",
                 size_hint_y=None,
-                font_size="15sp",
+                font_size="16sp",
+                color=TEXT,
                 halign="left",
                 valign="top",
             ),
@@ -52,6 +55,11 @@ class InfoScreen(Screen):
     def show_object(self, obj):
         self.content.clear_widgets()
         self.lbl_header.text = "Объект: " + str(obj.get("name") or "")
+
+        card = Card(orientation="vertical", size_hint_y=None,
+                    padding=dp(12), spacing=dp(10))
+        card.bind(minimum_height=card.setter("height"))
+
         for label, key in [
             ("ID", "id"),
             ("Название", "name"),
@@ -62,12 +70,15 @@ class InfoScreen(Screen):
         ]:
             value = obj.get(key) or "—"
             lbl = Label(
-                text="[b]" + label + "[/b] " + str(value),
+                text="[b][color=#8f97a8]" + label + "[/color][/b]\n" + str(value),
                 markup=True,
                 size_hint_y=None,
                 font_size="14sp",
+                color=TEXT,
                 halign="left",
                 valign="top",
             )
-            _fit_label(lbl, dp(40))
-            self.content.add_widget(lbl)
+            _fit_label(lbl, dp(44))
+            card.add_widget(lbl)
+
+        self.content.add_widget(card)
