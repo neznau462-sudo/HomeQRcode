@@ -5,7 +5,7 @@ package.domain = org.homeqrcode
 
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,key,txt
-version = 0.4
+version = 0.5
 
 # python3, hostpython3, Cython, setuptools, requests и прочее p4a подтягивает
 # сам как зависимости рецептов. Здесь — только то, что реально импортирует код.
