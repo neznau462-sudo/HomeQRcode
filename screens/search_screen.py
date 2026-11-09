@@ -9,12 +9,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 
 
-class SearchScreen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._build_ui()
-
-    def _fit_label(label, min_height):
+def _fit_label(label, min_height):
     """Подгоняет высоту Label под перенесённый текст (иначе он обрезается)."""
 
     def on_width(*_):
@@ -27,6 +22,12 @@ class SearchScreen(Screen):
     on_width()
     on_texture()
     return label
+
+
+class SearchScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._build_ui()
 
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
@@ -102,7 +103,4 @@ class SearchScreen(Screen):
                 valign="top",
             )
             _fit_label(lbl, dp(120))
-            self.results.add_widget(lbl)
-            # без этого Label не переносит строки и текст обрезается
-            lbl.bind(width=lambda inst, w: setattr(inst, "text_size", (w, None)))
             self.results.add_widget(lbl)
