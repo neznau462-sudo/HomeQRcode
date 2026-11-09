@@ -35,9 +35,18 @@ class RootWidget(BoxLayout):
             b.bind(on_release=lambda _x, n=name: self._switch(n))
             tabs.add_widget(b)
         self.add_widget(tabs)
+        # Кнопка/жест "Назад" на Android: не выходить из приложения,
+        # а возвращаться на главный экран.
+        Window.bind(on_keyboard=self._on_keyboard)
 
     def _switch(self, name):
         self.sm.current = name
+
+    def _on_keyboard(self, window, key, *args):
+        if key == 27 and self.sm.current != "create":  # 27 == ESC / back
+            self._switch("create")
+            return True
+        return False
 
 
 class HomeQRApp(App):
