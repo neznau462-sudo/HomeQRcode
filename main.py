@@ -1,9 +1,11 @@
 import os
+
 from kivy.app import App
-from kivy.uix.screenmanager import ScreenManager, NoTransition
+from kivy.core.window import Window
+from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.core.window import Window
+from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 from database import Database
 from screens.create_screen import CreateScreen
@@ -21,14 +23,15 @@ class RootWidget(BoxLayout):
         self.sm.add_widget(InfoScreen(name="info"))
         self.sm.add_widget(SearchScreen(name="search"))
         self.add_widget(self.sm)
-        tabs = BoxLayout(size_hint_y=None, height=56, spacing=2)
+
+        tabs = BoxLayout(size_hint_y=None, height=dp(56), spacing=dp(2))
         for label, name in [
             ("Создать", "create"),
             ("Сканировать", "scan"),
             ("Инфо", "info"),
             ("Поиск", "search"),
         ]:
-            b = Button(text=label)
+            b = Button(text=label, font_size="15sp")
             b.bind(on_release=lambda _x, n=name: self._switch(n))
             tabs.add_widget(b)
         self.add_widget(tabs)
@@ -44,6 +47,7 @@ class HomeQRApp(App):
         self.qr_dir = os.path.join(self.user_data_dir, "qr")
         os.makedirs(self.qr_dir, exist_ok=True)
         self.db = Database(self.user_data_dir)
+
         try:
             from android.permissions import request_permissions, Permission
         except ImportError:
@@ -64,6 +68,7 @@ class HomeQRApp(App):
                 if permission is not None:
                     wanted.append(permission)
             request_permissions(wanted)
+
         self.root_widget = RootWidget()
         return self.root_widget
 
