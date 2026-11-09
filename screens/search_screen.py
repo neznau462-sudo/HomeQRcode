@@ -1,12 +1,13 @@
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
-from kivy.uix.textinput import TextInput
+
+from ui_theme import (SURFACE, TEXT, TEXT_MUTED, Card, RoundedButton,
+                      RoundedTextInput)
 
 
 def _fit_label(label, min_height):
@@ -32,25 +33,29 @@ class SearchScreen(Screen):
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
 
-        self.ti_name = TextInput(
+        self.ti_name = RoundedTextInput(
             multiline=False,
             hint_text="Поиск по названию",
             size_hint_y=None,
-            height=dp(46),
-            font_size="15sp",
+            height=dp(48),
         )
         root.add_widget(self.ti_name)
 
+        # Spinner прозрачный, а скруглённый фон даёт карточка под ним.
+        spinner_card = Card(size_hint_y=None, height=dp(48), padding=0,
+                            bg_color=list(SURFACE))
         self.spinner = Spinner(
             text="Все категории",
             values=["Все категории"],
-            size_hint_y=None,
-            height=dp(46),
+            background_normal="",
+            background_color=(0, 0, 0, 0),
+            color=TEXT,
             font_size="15sp",
         )
-        root.add_widget(self.spinner)
+        spinner_card.add_widget(self.spinner)
+        root.add_widget(spinner_card)
 
-        btn = Button(text="Найти", size_hint_y=None, height=dp(48), font_size="16sp")
+        btn = RoundedButton(text="Найти", size_hint_y=None, height=dp(48))
         btn.bind(on_release=lambda *_: self._do_search())
         root.add_widget(btn)
 
@@ -58,7 +63,7 @@ class SearchScreen(Screen):
             orientation="vertical",
             size_hint_y=None,
             size_hint_x=1,
-            spacing=dp(6),
+            spacing=dp(8),
         )
         self.results.bind(minimum_height=self.results.setter("height"))
 
@@ -84,7 +89,8 @@ class SearchScreen(Screen):
         self.results.clear_widgets()
         if not rows:
             self.results.add_widget(
-                Label(text="Ничего не найдено", size_hint_y=None, height=dp(44))
+                Label(text="Ничего не найдено", size_hint_y=None,
+                      height=dp(44), color=TEXT_MUTED)
             )
             return
         for row in rows:
@@ -99,8 +105,14 @@ class SearchScreen(Screen):
                 markup=True,
                 size_hint_y=None,
                 font_size="14sp",
+                color=TEXT,
                 halign="left",
                 valign="top",
             )
             _fit_label(lbl, dp(120))
-            self.results.add_widget(lbl)
+
+            card = Card(orientation="vertical", size_hint_y=None,
+                        padding=dp(12), spacing=dp(4))
+            card.bind(minimum_height=card.setter("height"))
+            card.add_widget(lbl)
+            self.results.add_widget(card)
