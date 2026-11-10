@@ -6,7 +6,8 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 
 from backup_utils import export_to_documents, import_from_shared, is_android
-from ui_theme import SURFACE_HI, TEXT, TEXT_MUTED, Card, RoundedButton
+from ui_theme import (DANGER, DANGER_DOWN, SURFACE_HI, TEXT, TEXT_MUTED,
+                      Card, RoundedButton, confirm)
 
 
 def _fit_label(label, min_height):
@@ -162,6 +163,9 @@ class InfoScreen(Screen):
         self.details.clear_widgets()
         self.lbl_header.text = "Объект: " + str(obj.get("name") or "")
 
+        obj_id = obj.get("id")
+        obj_name = str(obj.get("name") or "")
+
         card = Card(orientation="vertical", size_hint_y=None,
                     padding=dp(12), spacing=dp(10))
         card.bind(minimum_height=card.setter("height"))
@@ -187,4 +191,54 @@ class InfoScreen(Screen):
             _fit_label(lbl, dp(44))
             card.add_widget(lbl)
 
+        actions = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
+
+        btn_edit = RoundedButton(text="Редактировать", font_size="14sp")
+        btn_edit.bind(on_release=lambda *_: self._edit(obj_id))
+        actions.add_widget(btn_edit)
+
+        btn_delete = RoundedButton(
+            text="Удалить",
+            font_size="14sp",
+            bg_color=list(DANGER),
+            bg_color_down=list(DANGER_DOWN),
+            text_color=list(TEXT),
+        )
+        btn_delete.bind(
+            on_release=lambda *_: self._confirm_delete(obj_id, obj_name)
+        )
+        actions.add_widget(btn_delete)
+
+        card.add_widget(actions)
+
         self.details.add_widget(card)
+
+    def _edit(self, obj_id):
+        App.get_running_app().root_widget.edit_object(obj_id)
+
+    def _confirm_delete(self, obj_id, obj_name):
+        if len(obj_name) > 60:
+            obj_name = obj_name[:57] + "…"
+        confirm(
+            "Удалить запись?",
+            "«" + obj_name + "» будет удалена вместе с QR-кодом. "
+            "Отменить это действие нельзя.",
+            lambda: self._delete(obj_id),
+        )
+
+    def _delete(self, obj_id):
+        app = App.get_running_app()
+
+        # Если эта же запись открыта в форме редактирования,
+        # возвращаем форму в режим создания.
+        create = app.root_widget.sm.get_screen("create")
+        if create.current_id == obj_id:
+            create.start_create()
+
+        if not app.db.delete(obj_id):
+            self.lbl_header.text = "Запись уже удалена"
+            self.details.clear_widgets()
+            return
+
+        self.details.clear_widgets()
+        self.lbl_header.text = "Запись удалена"
