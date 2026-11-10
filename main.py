@@ -50,7 +50,10 @@ class RootWidget(BoxLayout):
                               bg_color=list(SURFACE),
                               bg_color_down=list(SURFACE_HI),
                               text_color=list(TEXT_MUTED))
-            b.bind(on_release=lambda _x, n=name: self._switch(n))
+            if name == "create":
+                b.bind(on_release=lambda _x: self._open_create_tab())
+            else:
+                b.bind(on_release=lambda _x, n=name: self._switch(n))
             tabs.add_widget(b)
             self._tabs[name] = b
         self.add_widget(tabs)
@@ -72,6 +75,21 @@ class RootWidget(BoxLayout):
                 btn.bg_color = list(SURFACE)
                 btn.bg_color_down = list(SURFACE_HI)
                 btn.text_color = list(TEXT_MUTED)
+
+    def _open_create_tab(self):
+        """Вкладка «Создать»: если были в режиме правки — вернуться к новой записи."""
+        create = self.sm.get_screen("create")
+        if create.is_editing:
+            create.start_create()
+        self._switch("create")
+
+    def edit_object(self, obj_id):
+        """Открыть существующую запись в форме создания."""
+        if not obj_id:
+            return
+        create = self.sm.get_screen("create")
+        create.start_edit(obj_id)
+        self._switch("create")
 
     def _on_keyboard(self, window, key, *args):
         if key == 27 and self.sm.current != "create":  # 27 == ESC / back
