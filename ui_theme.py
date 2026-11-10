@@ -2,8 +2,10 @@
 from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 from kivy.properties import ListProperty, NumericProperty
+from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 
 # палитра
@@ -15,6 +17,8 @@ PRIMARY_DOWN = (0.21, 0.43, 0.80, 1)
 TEXT = (0.94, 0.95, 0.97, 1)
 TEXT_MUTED = (0.60, 0.65, 0.74, 1)
 ACCENT = (0.36, 0.86, 0.72, 1)
+DANGER = (0.85, 0.29, 0.29, 1)
+DANGER_DOWN = (0.66, 0.19, 0.19, 1)
 
 RADIUS = dp(14)
 
@@ -43,6 +47,17 @@ class Card(BoxLayout):
 
     def _sync_radius(self, *_):
         self._rect.radius = [self.radius] * 4
+
+
+class ClickableCard(ButtonBehavior, Card):
+    """Карточка, которая реагирует на нажатие (открыть запись)."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(state=self._sync_press)
+
+    def _sync_press(self, *_):
+        self._bg.rgba = SURFACE_HI if self.state == "down" else self.bg_color
 
 
 class RoundedButton(Button):
@@ -116,3 +131,51 @@ class RoundedTextInput(TextInput):
 
     def _sync_radius(self, *_):
         self._rect.radius = [self.radius] * 4
+
+
+def confirm(title, text, on_confirm, confirm_text="Удалить",
+            cancel_text="Отмена"):
+    """Простое окно подтверждения (без .kv-файлов и внешних картинок)."""
+    from kivy.uix.popup import Popup
+
+    content = BoxLayout(orientation="vertical", padding=dp(16), spacing=dp(12))
+
+    message = Label(text=text, color=TEXT, font_size="14sp",
+                    halign="left", valign="top")
+    message.bind(width=lambda inst, w: setattr(inst, "text_size", (w, None)))
+    content.add_widget(message)
+
+    buttons = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
+    btn_no = RoundedButton(text=cancel_text, font_size="14sp",
+                           bg_color=list(SURFACE_HI),
+                           bg_color_down=list(SURFACE_HI),
+                           text_color=list(TEXT))
+    btn_yes = RoundedButton(text=confirm_text, font_size="14sp",
+                            bg_color=list(DANGER),
+                            bg_color_down=list(DANGER_DOWN),
+                            text_color=list(TEXT))
+    buttons.add_widget(btn_no)
+    buttons.add_widget(btn_yes)
+    content.add_widget(buttons)
+
+    popup = Popup(
+        title=title,
+        title_color=TEXT,
+        title_size="15sp",
+        separator_color=(0, 0, 0, 0),
+        background_color=list(SURFACE),
+        content=content,
+        size_hint=(0.9, None),
+        height=dp(280),
+        auto_dismiss=True,
+    )
+
+    btn_no.bind(on_release=lambda *_: popup.dismiss())
+
+    def _apply(*_):
+        popup.dismiss()
+        on_confirm()
+
+    btn_yes.bind(on_release=_apply)
+    popup.open()
+    return popup
