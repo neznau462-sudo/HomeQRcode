@@ -41,31 +41,50 @@ jobs:
         run: |
           pip install buildozer==1.6.0
 
-      - name: Restore debug keystore
+      - name: Restore signing key
         env:
-          KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 || secrets.DEBUG_KEYSTORE_B64 }}
+          STORE_PASS: ${{ secrets.RELEASE_KEYSTORE_PASSWD || 'android' }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEYALIAS || 'androiddebugkey' }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            mkdir -p ~/.android
-            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
-            keytool -list -keystore ~/.android/debug.keystore \
-              -storepass android -alias androiddebugkey > /dev/null
-            echo "Debug keystore restored (stable signature)"
-          else
-            echo "::warning::DEBUG_KEYSTORE_B64 is not set - the APK signature will change on every build and updates will require uninstall"
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Keystore secret is empty. Add RELEASE_KEYSTORE_B64 (or DEBUG_KEYSTORE_B64) in repository secrets."
+            exit 1
           fi
+          echo "$KEYSTORE_B64" | base64 -d > release.keystore
+          keytool -list -keystore release.keystore -storepass "$STORE_PASS" \
+            -alias "$KEY_ALIAS" > /dev/null
+          echo "Signing key restored (alias: $KEY_ALIAS)"
 
-      - name: Build with Buildozer
+      - name: Build release APK
+        env:
+          P4A_RELEASE_KEYSTORE: ${{ github.workspace }}/release.keystore
+          P4A_RELEASE_KEYALIAS: ${{ secrets.RELEASE_KEYALIAS || 'androiddebugkey' }}
+          P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.RELEASE_KEYSTORE_PASSWD || 'android' }}
+          P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.RELEASE_KEYALIAS_PASSWD || secrets.RELEASE_KEYSTORE_PASSWD || 'android' }}
         run: |
-          buildozer android debug
+          buildozer android release
 
-      - name: Show APK signer
+      - name: Verify APK signature
         run: |
           APK=$(ls bin/*.apk | head -n 1)
-          keytool -printcert -jarfile "$APK" | grep -E "Owner|SHA256" || true
+          echo "APK: $APK"
+          case "$APK" in
+            *release-unsigned*)
+              echo "::error::APK is unsigned - keystore variables were not picked up"
+              exit 1
+              ;;
+          esac
+          APKSIGNER=$(find "$HOME/.buildozer" -path '*/build-tools/*/apksigner' -type f 2>/dev/null | sort -V | tail -n 1)
+          echo "apksigner: $APKSIGNER"
+          "$APKSIGNER" verify --print-certs "$APK"
+
+      - name: Remove keystore from workspace
+        if: always()
+        run: rm -f release.keystore
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HomeQRcode-APK
+          name: HomeQRcode-release
           path: bin/*.apk
