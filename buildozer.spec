@@ -5,7 +5,15 @@ package.domain = org.homeqrcode
 
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,key,txt
-version = 0.5
+version = 1.0
+
+# versionCode для Android: должен быть не меньше, чем у установленного APK,
+# иначе система откажется ставить обновление «поверх».
+android.numeric_version = 2
+
+# Release-сборка по умолчанию делает .aab (для Google Play), а нам нужен
+# обычный APK, который можно установить на телефон.
+android.release_artifact = apk
 
 # python3, hostpython3, Cython, setuptools, requests и прочее p4a подтягивает
 # сам как зависимости рецептов. Здесь — только то, что реально импортирует код.
@@ -18,13 +26,13 @@ android.api = 33
 android.minapi = 26
 android.ndk = 27b
 
-# Один ABI: сборка вдвое быстрее
+# Один ABI: сборка вдвое быстрее, и меньше шансов на путаницу с нативными .so
 android.archs = arm64-v8a
 
 android.permissions = CAMERA,READ_MEDIA_IMAGES,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
 android.accept_sdk_license = True
 android.allow_backup = True
 
-# Фиксируем p4a: сборка воспроизводима, и этот тег поставляет
-# Python 3.14.2 + Kivy 2.3.1 + numpy 2.3.0 + opencv 4.12.0
+# Фиксируем p4a: сборка воспроизводима, и именно этот тег поставляет
+# Python 3.14.2 + Kivy 2.3.1 + numpy 2.3.0 + opencv 4.12.0 одной командой.
 p4a.branch = v2026.05.09
