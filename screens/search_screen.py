@@ -6,8 +6,12 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
 
-from ui_theme import (SURFACE, TEXT, TEXT_MUTED, Card, RoundedButton,
-                      RoundedTextInput)
+from ui_theme import (SURFACE, TEXT, TEXT_MUTED, Card, ClickableCard,
+                      RoundedButton, RoundedTextInput)
+
+ALL_CATEGORIES = "Все категории"
+SORT_NEW = "Сначала новые"
+SORT_OLD = "Сначала старые"
 
 
 def _fit_label(label, min_height):
@@ -25,10 +29,31 @@ def _fit_label(label, min_height):
     return label
 
 
+def _make_spinner(text, values):
+    """Прозрачный Spinner: скруглённый фон даёт карточка под ним."""
+    return Spinner(
+        text=text,
+        values=values,
+        background_normal="",
+        background_color=(0, 0, 0, 0),
+        color=TEXT,
+        font_size="14sp",
+    )
+
+
+def _spinner_card(spinner):
+    card = Card(size_hint_y=None, height=dp(48), padding=0,
+                bg_color=list(SURFACE))
+    card.add_widget(spinner)
+    return card
+
+
 class SearchScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._has_searched = False
         self._build_ui()
+        self.sort_spinner.bind(text=self._on_sort_changed)
 
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
@@ -41,23 +66,25 @@ class SearchScreen(Screen):
         )
         root.add_widget(self.ti_name)
 
-        # Spinner прозрачный, а скруглённый фон даёт карточка под ним.
-        spinner_card = Card(size_hint_y=None, height=dp(48), padding=0,
-                            bg_color=list(SURFACE))
-        self.spinner = Spinner(
-            text="Все категории",
-            values=["Все категории"],
-            background_normal="",
-            background_color=(0, 0, 0, 0),
-            color=TEXT,
-            font_size="15sp",
-        )
-        spinner_card.add_widget(self.spinner)
-        root.add_widget(spinner_card)
+        # Фильтр по категории и сортировка — в одну строку.
+        filters = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(8))
+
+        self.spinner = _make_spinner(ALL_CATEGORIES, [ALL_CATEGORIES])
+        filters.add_widget(_spinner_card(self.spinner))
+
+        self.sort_spinner = _make_spinner(SORT_NEW, [SORT_NEW, SORT_OLD])
+        filters.add_widget(_spinner_card(self.sort_spinner))
+
+        root.add_widget(filters)
 
         btn = RoundedButton(text="Найти", size_hint_y=None, height=dp(48))
         btn.bind(on_release=lambda *_: self._do_search())
         root.add_widget(btn)
+
+        hint = Label(text="Нажмите на карточку, чтобы изменить или удалить запись",
+                     size_hint_y=None, height=dp(20),
+                     font_size="12sp", color=TEXT_MUTED)
+        root.add_widget(hint)
 
         self.results = BoxLayout(
             orientation="vertical",
@@ -75,17 +102,27 @@ class SearchScreen(Screen):
 
     def on_enter(self):
         app = App.get_running_app()
-        cats = ["Все категории"] + app.db.list_categories()
+        cats = [ALL_CATEGORIES] + app.db.list_categories()
         self.spinner.values = cats
         if self.spinner.text not in cats:
-            self.spinner.text = "Все категории"
+            self.spinner.text = ALL_CATEGORIES
+
+        # Вернулись после редактирования/удаления — обновим выдачу.
+        if self._has_searched:
+            self._do_search()
+
+    def _on_sort_changed(self, *_):
+        if self._has_searched:
+            self._do_search()
 
     def _do_search(self):
         app = App.get_running_app()
         name_q = self.ti_name.text.strip()
         cat = self.spinner.text
-        cat_q = "" if cat == "Все категории" else cat
-        rows = app.db.search(name_query=name_q, category=cat_q)
+        cat_q = "" if cat == ALL_CATEGORIES else cat
+        order = "asc" if self.sort_spinner.text == SORT_OLD else "desc"
+        rows = app.db.search(name_query=name_q, category=cat_q, order=order)
+        self._has_searched = True
         self.results.clear_widgets()
         if not rows:
             self.results.add_widget(
@@ -111,8 +148,14 @@ class SearchScreen(Screen):
             )
             _fit_label(lbl, dp(120))
 
-            card = Card(orientation="vertical", size_hint_y=None,
-                        padding=dp(12), spacing=dp(4))
+            card = ClickableCard(orientation="vertical", size_hint_y=None,
+                                 padding=dp(12), spacing=dp(4))
             card.bind(minimum_height=card.setter("height"))
             card.add_widget(lbl)
+
+            row_id = row["id"]
+            card.bind(
+                on_release=lambda _x, oid=row_id:
+                App.get_running_app().root_widget.edit_object(oid)
+            )
             self.results.add_widget(card)
